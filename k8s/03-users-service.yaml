@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: users-service
-          image: ridesharing/users-service:1.0.0
+          image: akkoljaninn/users-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8770

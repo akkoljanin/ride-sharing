@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pricing-service
-          image: ridesharing/pricing-service:1.0.0
+          image: akkoljaninn/pricing-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8772

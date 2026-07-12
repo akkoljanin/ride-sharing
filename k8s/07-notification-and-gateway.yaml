@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: ridesharing/notification-service:1.0.0
+          image: akkoljaninn/notification-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8774
@@ -74,7 +74,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: ridesharing/api-gateway:1.0.0
+          image: akkoljaninn/api-gateway:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8765

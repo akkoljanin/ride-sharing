@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: naming-server
-          image: ridesharing/naming-server:1.0.0
+          image: akkoljaninn/naming-server:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8761

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: driver-service
-          image: ridesharing/driver-service:1.0.0
+          image: akkoljaninn/driver-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8771

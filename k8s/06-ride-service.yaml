@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ride-service
-          image: ridesharing/ride-service:1.0.0
+          image: akkoljaninn/ride-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8773
