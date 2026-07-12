@@ -19,7 +19,7 @@ services:
       retries: 5
 
   naming-server:
-    image: ridesharing/naming-server:1.0.0
+    image: akkoljaninn/naming-server:1.0.0
     container_name: naming-server
     mem_limit: 512m
     ports:
@@ -35,7 +35,7 @@ services:
   # ── BUSINESS MICROSERVICES ────────────────────────────────────────────────
 
   users-service:
-    image: ridesharing/users-service:1.0.0
+    image: akkoljaninn/users-service:1.0.0
     container_name: users-service
     mem_limit: 512m
     ports:
@@ -49,7 +49,7 @@ services:
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
 
   driver-service:
-    image: ridesharing/driver-service:1.0.0
+    image: akkoljaninn/driver-service:1.0.0
     container_name: driver-service
     mem_limit: 512m
     ports:
@@ -63,7 +63,7 @@ services:
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
 
   pricing-service:
-    image: ridesharing/pricing-service:1.0.0
+    image: akkoljaninn/pricing-service:1.0.0
     container_name: pricing-service
     mem_limit: 512m
     ports:
@@ -77,7 +77,7 @@ services:
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
 
   ride-service:
-    image: ridesharing/ride-service:1.0.0
+    image: akkoljaninn/ride-service:1.0.0
     container_name: ride-service
     mem_limit: 700m
     ports:
@@ -94,7 +94,7 @@ services:
       SPRING.RABBITMQ.HOST: rabbitmq
 
   notification-service:
-    image: ridesharing/notification-service:1.0.0
+    image: akkoljaninn/notification-service:1.0.0
     container_name: notification-service
     mem_limit: 512m
     ports:
@@ -111,7 +111,7 @@ services:
       SPRING.RABBITMQ.HOST: rabbitmq
 
   api-gateway:
-    image: ridesharing/api-gateway:1.0.0
+    image: akkoljaninn/api-gateway:1.0.0
     container_name: api-gateway
     mem_limit: 512m
     ports:
