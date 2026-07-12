@@ -27,8 +27,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: maven
+
       - name: Make mvnw executable
-        run: find . -name "mvnw" -exec chmod +x {} \
+        run: find . -name "mvnw" -exec chmod +x {} +
 
       - name: Build Util
         working-directory: Util
@@ -94,7 +95,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Make mvnw executable
-        run: find . -name "mvnw" -exec chmod +x {} \
+        run: find . -name "mvnw" -exec chmod +x {} +
 
       - name: Build shared libraries
         run: |
