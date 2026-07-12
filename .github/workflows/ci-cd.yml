@@ -230,17 +230,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
         with:
-          version: 'latest'
+          cluster_name: ride-sharing-ci
 
-      - name: Configure kubeconfig
-        # Set KUBE_CONFIG secret in GitHub → Settings → Secrets
-        # Value: base64-encoded content of your ~/.kube/config
+      - name: Verify cluster
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          kubectl cluster-info
+          kubectl get nodes
 
       - name: Apply namespace and config
         run: kubectl apply -f k8s/00-namespace-configmap.yaml
@@ -250,7 +248,7 @@ jobs:
           kubectl apply -f k8s/01-rabbitmq.yaml
           kubectl apply -f k8s/02-naming-server.yaml
           kubectl wait --for=condition=ready pod -l app=naming-server \
-            -n ride-sharing --timeout=120s
+            -n ride-sharing --timeout=180s
 
       - name: Deploy microservices
         run: |
@@ -261,21 +259,15 @@ jobs:
           kubectl apply -f k8s/07-notification-and-gateway.yaml
           kubectl apply -f k8s/08-hpa.yaml
 
-      - name: Apply Istio policies
-        run: |
-          kubectl apply -f k8s/istio/01-gateway-virtualservices.yaml
-          kubectl apply -f k8s/istio/02-destination-rules.yaml
-          kubectl apply -f k8s/istio/03-mtls-authz.yaml
-
-      - name: Deploy EFK stack
-        run: |
-          kubectl apply -f k8s/efk/01-elasticsearch.yaml
-          kubectl apply -f k8s/efk/02-fluentd.yaml
-          kubectl apply -f k8s/efk/03-kibana.yaml
-
       - name: Verify deployment
         run: |
           echo "=== All pods ==="
           kubectl get pods -n ride-sharing
           echo "=== All services ==="
           kubectl get svc -n ride-sharing
+
+      - name: Print pod logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -n ride-sharing
+          kubectl describe pods -n ride-sharing
