@@ -176,27 +176,40 @@ jobs:
           done
 
       - name: Wait for services to register
-        run: sleep 60
+        run: sleep 100
 
       - name: Smoke test – register user
         run: |
-          curl -sf -X POST http://localhost:8765/users/register \
-            -H "Content-Type: application/json" \
-            -d '{"email":"ci@test.rs","password":"test123","role":"RIDER","phone":"0600000001"}' \
-            && echo "✓ User registration OK"
+          for i in $(seq 1 5); do
+            curl -sf -X POST http://localhost:8765/users/register \
+              -H "Content-Type: application/json" \
+              -d '{"email":"ci@test.rs","password":"test123","role":"RIDER","phone":"0600000001"}' \
+              && echo "✓ User registration OK" && break
+            echo "Attempt $i/5 failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Smoke test – available drivers
         run: |
-          curl -sf http://localhost:8765/drivers/available \
-            -u "admin@ridesharing.rs:admin123" \
-            && echo "✓ Driver check OK"
+          for i in $(seq 1 5); do
+            curl -sf http://localhost:8765/drivers/available \
+              -u "admin@ridesharing.rs:admin123" \
+              && echo "✓ Driver check OK" && break
+            echo "Attempt $i/5 failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Smoke test – pricing calculation
         run: |
-          curl -s -w "\nHTTP Status: %{http_code}\n" -X POST http://localhost:8765/pricing/calculate \
-           -H "Content-Type: application/json" \
-           -u "admin@ridesharing.rs:admin123" \
-           -d '{"pickupLat":45.2518,"pickupLng":19.8369,"dropoffLat":45.2671,"dropoffLng":19.8335,"activeDrivers":5,"activeRequests":3}'
+          for i in $(seq 1 5); do
+            curl -sf -X POST http://localhost:8765/pricing/calculate \
+              -H "Content-Type: application/json" \
+              -u "admin@ridesharing.rs:admin123" \
+              -d '{"pickupLat":45.2518,"pickupLng":19.8369,"dropoffLat":45.2671,"dropoffLng":19.8335,"activeDrivers":5,"activeRequests":3}' \
+              && echo "✓ Pricing calculation OK" && break
+            echo "Attempt $i/5 failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Print logs on failure
         if: failure()
