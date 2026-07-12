@@ -193,11 +193,10 @@ jobs:
 
       - name: Smoke test – pricing calculation
         run: |
-          curl -sf -X POST http://localhost:8765/pricing/calculate \
-            -H "Content-Type: application/json" \
-            -u "admin@ridesharing.rs:admin123" \
-            -d '{"pickupLat":45.2518,"pickupLng":19.8369,"dropoffLat":45.2671,"dropoffLng":19.8335,"activeDrivers":5,"activeRequests":3}' \
-            && echo "✓ Pricing calculation OK"
+          curl -s -w "\nHTTP Status: %{http_code}\n" -X POST http://localhost:8765/pricing/calculate \
+           -H "Content-Type: application/json" \
+           -u "admin@ridesharing.rs:admin123" \
+           -d '{"pickupLat":45.2518,"pickupLng":19.8369,"dropoffLat":45.2671,"dropoffLng":19.8335,"activeDrivers":5,"activeRequests":3}'
 
       - name: Print logs on failure
         if: failure()
