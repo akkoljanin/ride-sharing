@@ -1,0 +1,957 @@
+
+  "info": {
+    "_postman_id": "9a1da0b6-5ed0-463b-8ec3-8ce8de96652a",
+    "name": "RIDE-SHARING FINAL",
+    "description": "Kompletan Postman vodič za testiranje ride-sharing mikroservisnog sistema (20 testova) - registracija, tok vožnje, greške, Circuit Breaker i autorizacija.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "32903373"
+  },
+  "item": [
+    {
+      "name": "TEST 1 - Registracija RIDER korisnika",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{riderEmail}}\",\n  \"password\": \"{{riderPassword}}\",\n  \"role\": \"RIDER\",\n  \"phone\": \"0641111111\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 2 - Registracija DRIVER korisnika",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"password\": \"{{driverPassword}}\",\n  \"role\": \"DRIVER\",\n  \"phone\": \"0652222222\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 3 - Registracija vozača u driver-service",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{driverEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{driverPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"name\": \"Petar Nikolic\",\n  \"vehiclePlate\": \"NS-999-XX\",\n  \"vehicleModel\": \"Golf 7\",\n  \"available\": true,\n  \"locationLat\": 45.2671,\n  \"locationLng\": 19.8335\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/drivers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "drivers"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 4 - Prikaži sve korisnike (ADMIN)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{adminEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{adminPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 5 - Provjeri dostupne vozače",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/drivers/available",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "drivers",
+            "available"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 6 - Kalkulacija cijene (direktno)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pickupLat\": 45.2518,\n  \"pickupLng\": 19.8369,\n  \"dropoffLat\": 45.2671,\n  \"dropoffLng\": 19.8335,\n  \"activeDrivers\": 5,\n  \"activeRequests\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/pricing/calculate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pricing",
+            "calculate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 7 - Zahtjev za vožnju",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('rideId', body.id);",
+              "pm.test('Status je REQUESTED', function () { pm.expect(body.status).to.eql('REQUESTED'); });"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pickupLat\": 45.2518,\n  \"pickupLng\": 19.8369,\n  \"dropoffLat\": 45.2671,\n  \"dropoffLng\": 19.8335\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rides",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 8 - Prihvati vožnju (DRIVER)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{driverEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{driverPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/{{rideId}}/accept",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides",
+            "{{rideId}}",
+            "accept"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 9 - Provjeri da je vozač nedostupan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('available je false', function () { pm.expect(pm.response.json().available).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/drivers/{{driverEmail}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "drivers",
+            "{{driverEmail}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 10 - Završi vožnju (DRIVER)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{driverEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{driverPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/{{rideId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides",
+            "{{rideId}}",
+            "complete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 11 - Provjeri da je vozač ponovo dostupan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/drivers/available",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "drivers",
+            "available"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 12 - Provjeri notifikacije ridera",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Najmanje 3 notifikacije', function () { pm.expect(pm.response.json().length).to.be.at.least(3); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/notifications/rider/{{riderEmail}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "rider",
+            "{{riderEmail}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 13 - Pricing istorija",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/pricing/history",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pricing",
+            "history"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 14 - Prikaži sve vožnje ridera",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/rider/{{riderEmail}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides",
+            "rider",
+            "{{riderEmail}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 15 - Test nevaljane tranzicije (ERROR scenario)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 Bad Request', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/{{rideId}}/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides",
+            "{{rideId}}",
+            "cancel"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 16 - Kreiranje nove vožnje (za otkazivanje)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('rideId2', pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pickupLat\": 45.2518,\n  \"pickupLng\": 19.8369,\n  \"dropoffLat\": 45.2671,\n  \"dropoffLng\": 19.8335\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rides",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 17 - Otkazivanje kreirane vožnje",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/{{rideId2}}/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides",
+            "{{rideId2}}",
+            "cancel"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 18 - Circuit Breaker: zahtjev dok je driver-service ugašen (503)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('503 Service Unavailable', function () { pm.response.to.have.status(503); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pickupLat\": 45.2518,\n  \"pickupLng\": 19.8369,\n  \"dropoffLat\": 45.2671,\n  \"dropoffLng\": 19.8335\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rides",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "rides"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 19 - Neovlašteni pristup (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('401 Unauthorized', function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TEST 20 - Admin-only endpoint bez ADMIN role (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('403 Forbidden', function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{riderEmail}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{riderPassword}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8765"
+    },
+    {
+      "key": "riderEmail",
+      "value": "ana@test.rs"
+    },
+    {
+      "key": "riderPassword",
+      "value": "pass123"
+    },
+    {
+      "key": "driverEmail",
+      "value": "petar@test.rs"
+    },
+    {
+      "key": "driverPassword",
+      "value": "pass123"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@ridesharing.rs"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin123"
+    },
+    {
+      "key": "rideId",
+      "value": ""
+    },
+    {
+      "key": "rideId2",
+      "value": ""
+    }
+  ]
+}

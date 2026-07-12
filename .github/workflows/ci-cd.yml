@@ -1,0 +1,263 @@
+name: Ride-Sharing CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  JAVA_VERSION: '21'
+  DOCKER_REPO: ridesharing
+
+jobs:
+
+  # ── JOB 1: BUILD AND TEST ─────────────────────────────────────────────────
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build Util
+        working-directory: Util
+        run: ./mvnw clean install -DskipTests --no-transfer-progress
+
+      - name: Build ServiceLibrary
+        working-directory: ServiceLibrary
+        run: ./mvnw clean install -DskipTests --no-transfer-progress
+
+      - name: Test UsersService
+        working-directory: UsersService
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Test DriverService
+        working-directory: DriverService
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Test PricingService
+        working-directory: PricingService
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Test RideService
+        working-directory: RideService
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Test NotificationService
+        working-directory: NotificationService
+        run: ./mvnw test --no-transfer-progress
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: "*/target/surefire-reports/"
+          retention-days: 7
+
+  # ── JOB 2: BUILD AND PUSH DOCKER IMAGES ──────────────────────────────────
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build shared libraries
+        run: |
+          cd Util && ./mvnw clean install -DskipTests --no-transfer-progress && cd ..
+          cd ServiceLibrary && ./mvnw clean install -DskipTests --no-transfer-progress && cd ..
+
+      - name: Build and push NamingServer
+        working-directory: NamingServer
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/naming-server:1.0.0 .
+          docker build -t ${{ env.DOCKER_REPO }}/naming-server:${{ github.sha }} .
+          docker push ${{ env.DOCKER_REPO }}/naming-server:1.0.0
+          docker push ${{ env.DOCKER_REPO }}/naming-server:${{ github.sha }}
+
+      - name: Build and push UsersService
+        working-directory: UsersService
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/users-service:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/users-service:1.0.0
+
+      - name: Build and push DriverService
+        working-directory: DriverService
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/driver-service:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/driver-service:1.0.0
+
+      - name: Build and push PricingService
+        working-directory: PricingService
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/pricing-service:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/pricing-service:1.0.0
+
+      - name: Build and push RideService
+        working-directory: RideService
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/ride-service:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/ride-service:1.0.0
+
+      - name: Build and push NotificationService
+        working-directory: NotificationService
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/notification-service:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/notification-service:1.0.0
+
+      - name: Build and push APIGateway
+        working-directory: APIGateway
+        run: |
+          ./mvnw clean package -DskipTests --no-transfer-progress
+          docker build -t ${{ env.DOCKER_REPO }}/api-gateway:1.0.0 .
+          docker push ${{ env.DOCKER_REPO }}/api-gateway:1.0.0
+
+  # ── JOB 3: INTEGRATION TEST (docker-compose) ──────────────────────────────
+  integration-test:
+    name: Integration Test (Docker Compose)
+    runs-on: ubuntu-latest
+    needs: build-docker
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start system
+        run: docker compose up -d
+
+      - name: Wait for Eureka
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8761/actuator/health && echo "Eureka up!" && break
+            echo "Attempt $i/30 - waiting 10s..."
+            sleep 10
+          done
+
+      - name: Wait for services to register
+        run: sleep 60
+
+      - name: Smoke test – register user
+        run: |
+          curl -sf -X POST http://localhost:8765/users/register \
+            -H "Content-Type: application/json" \
+            -d '{"email":"ci@test.rs","password":"test123","role":"RIDER","phone":"0600000001"}' \
+            && echo "✓ User registration OK"
+
+      - name: Smoke test – available drivers
+        run: |
+          curl -sf http://localhost:8765/drivers/available \
+            -u "admin@ridesharing.rs:admin123" \
+            && echo "✓ Driver check OK"
+
+      - name: Smoke test – pricing calculation
+        run: |
+          curl -sf -X POST http://localhost:8765/pricing/calculate \
+            -H "Content-Type: application/json" \
+            -u "admin@ridesharing.rs:admin123" \
+            -d '{"pickupLat":45.2518,"pickupLng":19.8369,"dropoffLat":45.2671,"dropoffLng":19.8335,"activeDrivers":5,"activeRequests":3}' \
+            && echo "✓ Pricing calculation OK"
+
+      - name: Print logs on failure
+        if: failure()
+        run: docker compose logs --tail=80
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
+
+  # ── JOB 4: DEPLOY TO KUBERNETES ──────────────────────────────────────────
+  deploy-k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: integration-test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        # Set KUBE_CONFIG secret in GitHub → Settings → Secrets
+        # Value: base64-encoded content of your ~/.kube/config
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Apply namespace and config
+        run: kubectl apply -f k8s/00-namespace-configmap.yaml
+
+      - name: Deploy infrastructure
+        run: |
+          kubectl apply -f k8s/01-rabbitmq.yaml
+          kubectl apply -f k8s/02-naming-server.yaml
+          kubectl wait --for=condition=ready pod -l app=naming-server \
+            -n ride-sharing --timeout=120s
+
+      - name: Deploy microservices
+        run: |
+          kubectl apply -f k8s/03-users-service.yaml
+          kubectl apply -f k8s/04-driver-service.yaml
+          kubectl apply -f k8s/05-pricing-service.yaml
+          kubectl apply -f k8s/06-ride-service.yaml
+          kubectl apply -f k8s/07-notification-and-gateway.yaml
+          kubectl apply -f k8s/08-hpa.yaml
+
+      - name: Apply Istio policies
+        run: |
+          kubectl apply -f k8s/istio/01-gateway-virtualservices.yaml
+          kubectl apply -f k8s/istio/02-destination-rules.yaml
+          kubectl apply -f k8s/istio/03-mtls-authz.yaml
+
+      - name: Deploy EFK stack
+        run: |
+          kubectl apply -f k8s/efk/01-elasticsearch.yaml
+          kubectl apply -f k8s/efk/02-fluentd.yaml
+          kubectl apply -f k8s/efk/03-kibana.yaml
+
+      - name: Verify deployment
+        run: |
+          echo "=== All pods ==="
+          kubectl get pods -n ride-sharing
+          echo "=== All services ==="
+          kubectl get svc -n ride-sharing

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ride-service
+  namespace: ride-sharing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ride-service
+  template:
+    metadata:
+      labels:
+        app: ride-service
+        version: v1
+    spec:
+      containers:
+        - name: ride-service
+          image: ridesharing/ride-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8773
+          envFrom:
+            - configMapRef:
+                name: ride-sharing-config
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8773
+            initialDelaySeconds: 50
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8773
+            initialDelaySeconds: 70
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "384Mi"
+              cpu: "300m"
+            limits:
+              memory: "700Mi"
+              cpu: "700m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ride-service
+  namespace: ride-sharing
+spec:
+  selector:
+    app: ride-service
+  ports:
+    - port: 8773
+      targetPort: 8773
+      name: http

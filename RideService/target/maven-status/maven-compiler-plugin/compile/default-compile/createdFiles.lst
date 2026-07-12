@@ -1,0 +1,6 @@
+rideService\FeignCallService.class
+rideService\RideServiceImpl.class
+rideService\RideRepository.class
+rideService\RabbitMQConfig.class
+rideService\RideServiceApplication.class
+rideService\RideModel.class

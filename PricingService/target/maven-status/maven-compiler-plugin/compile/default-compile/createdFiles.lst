@@ -1,0 +1,4 @@
+pricingService\PricingModel.class
+pricingService\PricingServiceImpl.class
+pricingService\PricingRepository.class
+pricingService\PricingServiceApplication.class

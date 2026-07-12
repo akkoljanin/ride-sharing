@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver-service
+  namespace: ride-sharing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: driver-service
+  template:
+    metadata:
+      labels:
+        app: driver-service
+        version: v1
+    spec:
+      containers:
+        - name: driver-service
+          image: ridesharing/driver-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8771
+          envFrom:
+            - configMapRef:
+                name: ride-sharing-config
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8771
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8771
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driver-service
+  namespace: ride-sharing
+spec:
+  selector:
+    app: driver-service
+  ports:
+    - port: 8771
+      targetPort: 8771
+      name: http

@@ -1,0 +1,3 @@
+apiGateway\ApiGatewayApplication.class
+apiGateway\config\SecurityConfiguration.class
+apiGateway\config\RoutingConfiguration.class

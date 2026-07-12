@@ -1,0 +1,98 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: ride-sharing-alerts
+    folder: Ride Sharing
+    interval: 1m
+    rules:
+      - uid: circuit-breaker-open
+        title: Circuit Breaker OPEN
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: resilience4j_circuitbreaker_state{application="ride-service",state="open"}
+              legendFormat: "{{name}}"
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+        noDataState: OK
+        execErrState: Alerting
+        for: 30s
+        annotations:
+          summary: "Circuit breaker OPEN on ride-service"
+          description: "Circuit breaker {{ $labels.name }} is OPEN. Downstream service is failing."
+        labels:
+          severity: critical
+
+      - uid: high-error-rate
+        title: High HTTP Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >
+                sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+                /
+                sum(rate(http_server_requests_seconds_count[5m])) * 100
+              legendFormat: "Error rate %"
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [10]
+                    type: gt
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: "High 5xx error rate (>10%)"
+          description: "HTTP 5xx error rate is above 10% for more than 2 minutes."
+        labels:
+          severity: warning
+
+      - uid: service-down
+        title: Microservice Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job=~".*-service"}
+              legendFormat: "{{job}}"
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 30s
+        annotations:
+          summary: "Microservice {{ $labels.job }} is DOWN"
+          description: "Prometheus cannot scrape metrics from {{ $labels.job }}. Service may be down."
+        labels:
+          severity: critical

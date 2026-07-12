@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: ride-sharing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        version: v1
+    spec:
+      containers:
+        - name: notification-service
+          image: ridesharing/notification-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8774
+          envFrom:
+            - configMapRef:
+                name: ride-sharing-config
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8774
+            initialDelaySeconds: 50
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8774
+            initialDelaySeconds: 70
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: ride-sharing
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: 8774
+      targetPort: 8774
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: ride-sharing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        version: v1
+    spec:
+      containers:
+        - name: api-gateway
+          image: ridesharing/api-gateway:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8765
+          envFrom:
+            - configMapRef:
+                name: ride-sharing-config
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8765
+            initialDelaySeconds: 50
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8765
+            initialDelaySeconds: 70
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: ride-sharing
+spec:
+  type: NodePort
+  selector:
+    app: api-gateway
+  ports:
+    - port: 8765
+      targetPort: 8765
+      nodePort: 30765
+      name: http

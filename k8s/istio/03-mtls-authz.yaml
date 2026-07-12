@@ -1,0 +1,48 @@
+# Enable mTLS for the entire ride-sharing namespace
+# This ensures all service-to-service communication is encrypted
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: ride-sharing
+spec:
+  mtls:
+    mode: STRICT
+---
+# AuthorizationPolicy – ride-service can only be called from api-gateway or ride-service
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ride-service-authz
+  namespace: ride-sharing
+spec:
+  selector:
+    matchLabels:
+      app: ride-service
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/ride-sharing/sa/default"
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+---
+# AuthorizationPolicy – driver-service can be called by ride-service and api-gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: driver-service-authz
+  namespace: ride-sharing
+spec:
+  selector:
+    matchLabels:
+      app: driver-service
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/ride-sharing/sa/default"
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naming-server
+  namespace: ride-sharing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: naming-server
+  template:
+    metadata:
+      labels:
+        app: naming-server
+        version: v1
+    spec:
+      containers:
+        - name: naming-server
+          image: ridesharing/naming-server:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8761
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: naming-server
+  namespace: ride-sharing
+spec:
+  selector:
+    app: naming-server
+  ports:
+    - port: 8761
+      targetPort: 8761
+      name: http

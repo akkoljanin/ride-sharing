@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+
+  # ── INFRASTRUCTURE ────────────────────────────────────────────────────────
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - ride-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  naming-server:
+    image: ridesharing/naming-server:1.0.0
+    container_name: naming-server
+    mem_limit: 512m
+    ports:
+      - "8761:8761"
+    networks:
+      - ride-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── BUSINESS MICROSERVICES ────────────────────────────────────────────────
+
+  users-service:
+    image: ridesharing/users-service:1.0.0
+    container_name: users-service
+    mem_limit: 512m
+    ports:
+      - "8770:8770"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+
+  driver-service:
+    image: ridesharing/driver-service:1.0.0
+    container_name: driver-service
+    mem_limit: 512m
+    ports:
+      - "8771:8771"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+
+  pricing-service:
+    image: ridesharing/pricing-service:1.0.0
+    container_name: pricing-service
+    mem_limit: 512m
+    ports:
+      - "8772:8772"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+
+  ride-service:
+    image: ridesharing/ride-service:1.0.0
+    container_name: ride-service
+    mem_limit: 700m
+    ports:
+      - "8773:8773"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING.RABBITMQ.HOST: rabbitmq
+
+  notification-service:
+    image: ridesharing/notification-service:1.0.0
+    container_name: notification-service
+    mem_limit: 512m
+    ports:
+      - "8774:8774"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING.RABBITMQ.HOST: rabbitmq
+
+  api-gateway:
+    image: ridesharing/api-gateway:1.0.0
+    container_name: api-gateway
+    mem_limit: 512m
+    ports:
+      - "8765:8765"
+    networks:
+      - ride-network
+    depends_on:
+      naming-server:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+    environment:
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://naming-server:8761/eureka
+
+  # ── MONITORING ────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - ride-network
+    depends_on:
+      - users-service
+      - driver-service
+      - pricing-service
+      - ride-service
+      - notification-service
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+      - ./monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - ride-network
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/ride-sharing-dashboard.json
+
+networks:
+  ride-network:
+
+volumes:
+  grafana-storage:

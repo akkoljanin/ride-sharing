@@ -1,0 +1,6 @@
+notificationService\NotificationModel.class
+notificationService\RabbitMQConfig.class
+notificationService\NotificationRepository.class
+notificationService\NotificationServiceApplication.class
+notificationService\NotificationController.class
+notificationService\RideEventListener.class
