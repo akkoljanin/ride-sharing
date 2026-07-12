@@ -344,6 +344,8 @@ kubectl delete namespace ride-sharing
 
 ## 10. CI/CD – GitHub Actions
 
+<img width="1459" height="457" alt="Screenshot (801)" src="https://github.com/user-attachments/assets/005f9378-668d-4e69-b8e3-258ed385c3e4" />
+
 ### Podešavanje GitHub Secrets
 
 ```
