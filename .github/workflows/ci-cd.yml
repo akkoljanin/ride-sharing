@@ -8,7 +8,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  DOCKER_REPO: ridesharing
+  DOCKER_REPO: akkoljaninn
 
 jobs:
 
