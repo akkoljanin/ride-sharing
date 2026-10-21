@@ -1,11 +1,15 @@
 # Ride-Sharing Mikroservisni Sistem
 
-<div align="center">
+<div >
 
-**Distribuirani Informacioni Sistemi - Projektni zadatak**  
-Fakultet tehničkih nauka, Novi Sad 
-
-Andrijana Koljanin I7 20/2025
+[![CI/CD](https://github.com/akkoljanin/ride-sharing/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/akkoljanin/ride-sharing/actions/workflows/ci-cd.yml)
+![Java](https://img.shields.io/badge/Java-21-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen)
+![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.0.0-brightgreen)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-messaging-orange)
+![Docker](https://img.shields.io/badge/Docker-compose-blue)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-manifests-326ce5)
+![Istio](https://img.shields.io/badge/Istio-service%20mesh-466bb0)
 
 </div>
 
